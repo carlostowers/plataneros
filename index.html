@@ -1171,6 +1171,31 @@ footer{position:relative;z-index:1;border-top:1px solid var(--line);margin-top:4
   </div>
 </div>
 
+<!-- PLAN DE UN DIA (Microciclo) -->
+<div class="modal-overlay" id="day-plan-modal" style="display:none" onclick="closeDayPlanModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title" id="dpm-title">Plan del día</div>
+    <div class="modal-subtitle" id="dpm-subtitle"></div>
+
+    <div class="form-block">
+      <label class="form-label">Entrenamiento ese día</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="dpm-toggles"></div>
+    </div>
+
+    <div class="form-block" id="dpm-jump-block" style="display:none">
+      <label class="form-label">Volumen de salto (cancha)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="dpm-jump-toggles"></div>
+    </div>
+
+    <div class="mono-note" id="dpm-template-note" style="margin-bottom:16px"></div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="dpmResetToTemplate()">Restablecer a la plantilla</button>
+      <button class="btn-secondary" onclick="closeDayPlanModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MENSAJE DEL JUGADOR -->
 <div class="slideover-backdrop" id="note-backdrop" onclick="closeNoteSlider()"></div>
 <div class="slideover-panel" id="note-panel">
@@ -1205,26 +1230,26 @@ const sb = window.supabase.createClient(
 // tiene filas, esta lista no hace nada.
 const SEED_PLAYERS = [
   // Esquinas / Outside Hitters
-  {id:"p-spencer-olivier",name:"Spencer Olivier",team:"Plataneros",number:"S/N",position:"OH"},
-  {id:"p-inovel-romero",name:"Inovel Romero",team:"Plataneros",number:"S/N",position:"OH"},
-  {id:"p-klistan-lawrence",name:"Klistan Lawrence",team:"Plataneros",number:"S/N",position:"OH"},
-  {id:"p-joseph-oquendo",name:"Joseph Oquendo",team:"Plataneros",number:"S/N",position:"OH"},
+  {id:"p-spencer-olivier",name:"Spencer Olivier",team:"Plataneros",number:"S/N",position:"OH",phone:"+17143766472"},
+  {id:"p-inovel-romero",name:"Inovel Romero",team:"Plataneros",number:"S/N",position:"OH",phone:"+17879419722"},
+  {id:"p-klistan-lawrence",name:"Klistan Lawrence",team:"Plataneros",number:"S/N",position:"OH",phone:"+13523041972"},
+  {id:"p-joseph-oquendo",name:"Joseph Oquendo",team:"Plataneros",number:"S/N",position:"OH",phone:"+17873292225"},
   // Centrales / Middle Hitters
-  {id:"p-julio-mercedes",name:"Julio Mercedes",team:"Plataneros",number:"S/N",position:"MH"},
-  {id:"p-guillermo-moya",name:"Guillermo Moya",team:"Plataneros",number:"S/N",position:"MH"},
-  {id:"p-anthony-tony-negron",name:"Anthony \"Tony\" Negrón",team:"Plataneros",number:"S/N",position:"MH"},
+  {id:"p-julio-mercedes",name:"Julio Mercedes",team:"Plataneros",number:"S/N",position:"MH",phone:"+17875133875"},
+  {id:"p-guillermo-moya",name:"Guillermo Moya",team:"Plataneros",number:"S/N",position:"MH",phone:"+19392408345"},
+  {id:"p-anthony-tony-negron",name:"Anthony \"Tony\" Negrón",team:"Plataneros",number:"S/N",position:"MH",phone:"+17879810529"},
   {id:"p-pedro-nieves",name:"Pedro Nieves",team:"Plataneros",number:"S/N",position:"MH"},
   {id:"p-antonio-elias",name:"Antonio Elías",team:"Plataneros",number:"S/N",position:"MH"},
   // Opuestos / Opposites
   {id:"p-samuel-jackman",name:"Samuel Jackman",team:"Plataneros",number:"S/N",position:"OP"},
-  {id:"p-elian-rivera",name:"Elian Rivera",team:"Plataneros",number:"S/N",position:"OP"},
+  {id:"p-elian-rivera",name:"Elian Rivera",team:"Plataneros",number:"S/N",position:"OP",phone:"+17872409888"},
   // Acomodadores / Setters
-  {id:"p-luis-carlos-ruiz",name:"Luis Carlos Ruiz",team:"Plataneros",number:"S/N",position:"S"},
-  {id:"p-luzgardo-liciaga",name:"Luzgardo Liciaga",team:"Plataneros",number:"S/N",position:"S"},
-  {id:"p-jose-chema-vargas",name:"José \"Chema\" Vargas",team:"Plataneros",number:"S/N",position:"S"},
+  {id:"p-luis-carlos-ruiz",name:"Luis Carlos Ruiz",team:"Plataneros",number:"S/N",position:"S",phone:"+19392448713"},
+  {id:"p-luzgardo-liciaga",name:"Luzgardo Liciaga",team:"Plataneros",number:"S/N",position:"S",phone:"+17879107761"},
+  {id:"p-jose-chema-vargas",name:"José \"Chema\" Vargas",team:"Plataneros",number:"S/N",position:"S",phone:"+17876442150"},
   // Líberos
-  {id:"p-hector-nene-valentin",name:"Héctor \"Nene\" Valentín",team:"Plataneros",number:"S/N",position:"L"},
-  {id:"p-carlos-berlingeri",name:"Carlos Berlingeri",team:"Plataneros",number:"S/N",position:"L"}
+  {id:"p-hector-nene-valentin",name:"Héctor \"Nene\" Valentín",team:"Plataneros",number:"S/N",position:"L",phone:"+17879040679"},
+  {id:"p-carlos-berlingeri",name:"Carlos Berlingeri",team:"Plataneros",number:"S/N",position:"L",phone:"+17876291999"}
 ];
 
 // ============ AUTH ============
@@ -1282,6 +1307,7 @@ async function loadTeamSettings() {
     if (data) data.forEach(function(row){
       if (TEAM_SETTINGS[row.team] !== undefined) TEAM_SETTINGS[row.team].tournamentMode = row.tournament_mode;
       if (row.team === PRACTICE_TEAM && row.timezone) TEAM_TZ = row.timezone;
+      if (row.team === PRACTICE_TEAM) TRAINING_TEMPLATE = row.training_template || {};
     });
   } catch(e) { console.error('team_settings', e); }
 }
@@ -1300,7 +1326,8 @@ async function saveTeamSettings() {
 
 // ============ ESTADO ============
 let DB = { players:[], entries:[] };
-let PRACTICE_DAYS = {};
+let PRACTICE_DAYS = {};   // anulaciones explicitas por fecha exacta: team|fecha -> {gym,court,jump}
+let TRAINING_TEMPLATE = {}; // plantilla semanal por defecto: dow(0-6, 0=domingo) -> {gym,court}
 let PLAYER_TOKEN = null;      // token del enlace personal (solo modo jugador)
 let PLAYER_ID = null;         // id que devuelve el servidor a partir del token
 let TEAM_CHECKIN_DAYS = {};   // "pid|fecha" -> true. Solo el hecho, nunca el contenido.
@@ -1378,6 +1405,48 @@ function gameOn(dateStr){
   return TOURNAMENTS.find(function(t){ return t.startDate===dateStr; }) || null;
 }
 
+// ============ PERIODIZACIÓN FÍSICA LVSM 2K26-27 ============
+// Transcrito de "Planificación Física LVSM 2K26" (Coach Freddy Vázquez).
+// 20 semanas consecutivas y sin huecos, del 1 de septiembre 2026 al 16 de
+// enero 2027, con el objetivo físico principal, la etapa de periodización,
+// el nivel de intensidad recomendado, los partidos esperados por semana y
+// el objetivo del período para cada una. Esto es solo el marco de
+// carga/intensidad de referencia: los días reales de gimnasio y cancha
+// viven en TRAINING_TEMPLATE (martes/viernes/domingo por ahora) y los
+// partidos reales, una vez confirmado el calendario, en TOURNAMENTS.
+const PERIODIZATION_PLAN = [
+  { week:1,  start:'2026-09-01', end:'2026-09-05', objetivo:'Evaluaciones y adaptación inicial', etapa:'Adaptación Anatómica', intensidad:'50%', juegos:'0', periodo:'Adaptar al atleta a las cargas de entrenamiento, evaluar capacidades físicas y prevenir lesiones.' },
+  { week:2,  start:'2026-09-06', end:'2026-09-12', objetivo:'Base aeróbica y fuerza general', etapa:'Preparación General', intensidad:'60%', juegos:'0', periodo:'Desarrollar la resistencia aeróbica y una base sólida de fuerza para soportar el volumen de trabajo.' },
+  { week:3,  start:'2026-09-13', end:'2026-09-19', objetivo:'Fuerza máxima I', etapa:'Preparación Específica', intensidad:'70%', juegos:'0', periodo:'Incrementar los niveles de fuerza máxima para transferirlos posteriormente a la potencia.' },
+  { week:4,  start:'2026-09-20', end:'2026-09-26', objetivo:'Fuerza máxima II', etapa:'Preparación Específica', intensidad:'80%', juegos:'0', periodo:'Consolidar la fuerza máxima y mejorar el reclutamiento neuromuscular.' },
+  { week:5,  start:'2026-09-27', end:'2026-10-03', objetivo:'Potencia y velocidad', etapa:'Conversión a Potencia', intensidad:'90%', juegos:'0', periodo:'Transformar la fuerza en acciones explosivas específicas del voleibol.' },
+  { week:6,  start:'2026-10-04', end:'2026-10-10', objetivo:'Potencia y capacidad anaeróbica', etapa:'Precompetitiva', intensidad:'90-95%', juegos:'0-1', periodo:'Optimizar la potencia y la capacidad de repetir esfuerzos de alta intensidad.' },
+  { week:7,  start:'2026-10-11', end:'2026-10-17', objetivo:'Puesta a punto', etapa:'Puesta a Punto (Tapering)', intensidad:'85%', juegos:'0-1', periodo:'Reducir la fatiga aumentando la intensidad para llegar al máximo rendimiento.' },
+  { week:8,  start:'2026-10-18', end:'2026-10-24', objetivo:'Inicio de torneo', etapa:'Competitiva', intensidad:'70%', juegos:'2-3', periodo:'Mantener las capacidades físicas mientras el énfasis pasa al rendimiento en competencia.' },
+  { week:9,  start:'2026-10-25', end:'2026-10-31', objetivo:'Competencia - Adaptación', etapa:'Competitiva', intensidad:'70%', juegos:'2-3', periodo:'Adaptar la carga según el calendario de juegos y favorecer la recuperación.' },
+  { week:10, start:'2026-11-01', end:'2026-11-07', objetivo:'Competencia', etapa:'Competitiva', intensidad:'65-70%', juegos:'2-3', periodo:'Mantener fuerza y potencia con énfasis en la calidad del entrenamiento.' },
+  { week:11, start:'2026-11-08', end:'2026-11-14', objetivo:'Competencia', etapa:'Competitiva', intensidad:'65-70%', juegos:'2-3', periodo:'Mejorar la resistencia anaeróbica y la capacidad de recuperación entre puntos y sets.' },
+  { week:12, start:'2026-11-15', end:'2026-11-21', objetivo:'Competencia', etapa:'Competitiva', intensidad:'60-65%', juegos:'2-3', periodo:'Mantener las capacidades físicas sin generar fatiga acumulada.' },
+  { week:13, start:'2026-11-22', end:'2026-11-28', objetivo:'Competencia', etapa:'Competitiva', intensidad:'60-65%', juegos:'2-3', periodo:'Reducir el riesgo de lesiones y mantener frescura física y mental.' },
+  { week:14, start:'2026-11-29', end:'2026-12-05', objetivo:'Competencia', etapa:'Competitiva', intensidad:'60-65%', juegos:'2-3', periodo:'Sostener el rendimiento y preparar el cierre de la fase regular.' },
+  { week:15, start:'2026-12-06', end:'2026-12-12', objetivo:'Play Off', etapa:'Competitiva - Pico de Rendimiento', intensidad:'70-75%', juegos:'2-3', periodo:'Alcanzar el mejor estado físico y mental para las series decisivas.' },
+  { week:16, start:'2026-12-13', end:'2026-12-19', objetivo:'Play Off', etapa:'Competitiva - Pico de Rendimiento', intensidad:'70-75%', juegos:'2-3', periodo:'Mantener alta intensidad y recuperación óptima para el siguiente juego.' },
+  { week:17, start:'2026-12-20', end:'2026-12-26', objetivo:'Semi-Finales', etapa:'Competitiva - Pico de Rendimiento', intensidad:'65-70%', juegos:'2-3', periodo:'Mantener frescura, enfoque y activación para la serie semifinal.' },
+  { week:18, start:'2026-12-27', end:'2027-01-02', objetivo:'Semi-Finales', etapa:'Competitiva - Pico de Rendimiento', intensidad:'60-65%', juegos:'2-3', periodo:'Reducir el desgaste y preparar el pico para la final.' },
+  { week:19, start:'2027-01-03', end:'2027-01-09', objetivo:'Finales', etapa:'Pico Máximo de Rendimiento', intensidad:'60%', juegos:'2-3', periodo:'Maximizar el rendimiento físico y mental para competir por el campeonato.' },
+  { week:20, start:'2027-01-10', end:'2027-01-16', objetivo:'Finales', etapa:'Pico Máximo de Rendimiento', intensidad:'60-70%', juegos:'2-3', periodo:'Mantener el nivel óptimo de rendimiento y cerrar la temporada al máximo nivel.' }
+];
+function periodizationWeekFor(dateStr){
+  return PERIODIZATION_PLAN.find(function(w){ return dateStr >= w.start && dateStr <= w.end; }) || null;
+}
+function periodizationIntensityColor(intensidad){
+  var n = parseInt(intensidad, 10) || 0; // toma el primer numero, ej. "65-70%" -> 65
+  if(n <= 60) return '#16A34A';
+  if(n <= 75) return '#F5A524';
+  if(n <= 85) return '#F97316';
+  return '#EF4444';
+}
+
 // ============ CARGA DE DATOS ============
 async function seedPlayersIfNeeded() {
   const { data } = await sb.from('players').select('id').limit(1);
@@ -1407,8 +1476,11 @@ async function loadAll() {
   OVERUSE = (results[4].data || []).map(normalizeOveruse);
   AVAILABILITY = (results[5].data || []).map(normalizeAvailability);
   BODYWEIGHT = (results[6].data || []).map(normalizeWeight);
+  // Cada fila de practice_days es una anulacion EXPLICITA para esa fecha
+  // exacta (incluido gym:false, court:false — un descanso a proposito).
+  // Ya no se descarta al cargarla: es lo que le gana a la plantilla semanal.
   PRACTICE_DAYS = {};
-  (results[3].data || []).forEach(function(r){ if(r.gym || r.court) PRACTICE_DAYS[r.team+'|'+r.date] = { gym:!!r.gym, court:!!r.court, jump:r.jump_level || null }; });
+  (results[3].data || []).forEach(function(r){ PRACTICE_DAYS[r.team+'|'+r.date] = { gym:!!r.gym, court:!!r.court, jump:r.jump_level || null }; });
   try { invalidateMetricsCache(); } catch(e) {}
 }
 // El modo jugador no lee las tablas: pide su paquete al servidor, que filtra
@@ -1431,11 +1503,12 @@ function applyBootstrap(b){
   TEAM_CHECKIN_DAYS = {};
   (b.checkins || []).forEach(function(c){ TEAM_CHECKIN_DAYS[c.player_id + '|' + c.date] = true; });
   PRACTICE_DAYS = {};
-  (b.practice_days || []).forEach(function(r){ if(r.gym || r.court) PRACTICE_DAYS[r.team + '|' + r.date] = { gym:!!r.gym, court:!!r.court, jump:r.jump_level || null }; });
+  (b.practice_days || []).forEach(function(r){ PRACTICE_DAYS[r.team + '|' + r.date] = { gym:!!r.gym, court:!!r.court, jump:r.jump_level || null }; });
   TOURNAMENTS = (b.tournaments || []).map(normalizeTournament);
   (b.team_settings || []).forEach(function(row){
     if(TEAM_SETTINGS[row.team] !== undefined) TEAM_SETTINGS[row.team].tournamentMode = row.tournament_mode;
     if(row.timezone) TEAM_TZ = row.timezone;
+    if(row.team === PRACTICE_TEAM) TRAINING_TEMPLATE = row.training_template || {};
   });
   OVERUSE = (b.overuse || []).map(normalizeOveruse);
   try { invalidateMetricsCache(); } catch(e) {}
@@ -1922,46 +1995,86 @@ function getMetrics(pid){
 }
 
 // ============ DIAS DE PRACTICA ============
-// Persistido en Supabase (practice_days), no en almacenamiento local, para
-// que el estado sea el mismo en todos los dispositivos del staff.
-// Apagado por defecto: con dos practicas semanales la mayoria de los dias
-// no hay entrenamiento y un panel encendido genera expectativa falsa.
+// Dos capas: una PLANTILLA semanal por defecto (que dia de la semana toca
+// gimnasio/cancha, aplicada automaticamente semana tras semana) y
+// ANULACIONES puntuales por fecha exacta en practice_days (para corregir un
+// dia sin tocar el patron general: un viaje, un feriado, un cambio de
+// ultima hora). Una anulacion explicita SIEMPRE le gana a la plantilla para
+// esa fecha, incluso si queda en gym:false/court:false — eso es justamente
+// como se marca "hoy es descanso a proposito" sin desarmar la plantilla.
+// Persistido en Supabase (team_settings.training_template y practice_days),
+// no en almacenamiento local, para que el estado sea el mismo en todos los
+// dispositivos del staff.
+function templateFor(dow){
+  var t = TRAINING_TEMPLATE && TRAINING_TEMPLATE[dow];
+  return { gym: !!(t && t.gym), court: !!(t && t.court) };
+}
+// El plan que de verdad aplica ese dia: la anulacion puntual si existe, si
+// no la plantilla semanal segun el dia de la semana.
+function effectivePlanFor(dateStr){
+  var key = PRACTICE_TEAM + '|' + dateStr;
+  if(Object.prototype.hasOwnProperty.call(PRACTICE_DAYS, key)) return PRACTICE_DAYS[key];
+  return templateFor(dateFromISO(dateStr).getDay());
+}
 // isPracticeDayOn/isPracticeDay siguen siendo "hubo ALGUN entrenamiento ese
 // dia" (gimnasio o cancha) — se usan para adherencia y para la racha del
 // jugador, que no distinguen cual de los dos se hizo.
 function isPracticeDayOn(dateStr){
-  return !!PRACTICE_DAYS[PRACTICE_TEAM + '|' + (dateStr || today())];
+  var p = effectivePlanFor(dateStr || today());
+  return !!(p.gym || p.court);
 }
 function isPracticeDay(){ return isPracticeDayOn(today()); }
 // Gimnasio (fisico) y cancha (tecnico/tactico) son mediciones separadas del
 // mismo dia: un jugador puede tener los dos, solo uno, o ninguno.
-function isGymDayOn(dateStr){
-  var r = PRACTICE_DAYS[PRACTICE_TEAM + '|' + (dateStr || today())];
-  return !!(r && r.gym);
-}
-function isCourtDayOn(dateStr){
-  var r = PRACTICE_DAYS[PRACTICE_TEAM + '|' + (dateStr || today())];
-  return !!(r && r.court);
-}
+function isGymDayOn(dateStr){ return !!effectivePlanFor(dateStr || today()).gym; }
+function isCourtDayOn(dateStr){ return !!effectivePlanFor(dateStr || today()).court; }
 function isGymDay(){ return isGymDayOn(today()); }
 function isCourtDay(){ return isCourtDayOn(today()); }
-async function toggleTrainingSlot(kind){
-  var d = today(), key = PRACTICE_TEAM + '|' + d;
+// Guarda una anulacion puntual para UNA fecha exacta (hoy, pasada o
+// futura). Usada tanto por el interruptor rapido de "hoy" en el Panel como
+// por el editor de un dia concreto en Microciclo.
+async function saveDayOverride(dateStr, gym, court, jump){
+  var key = PRACTICE_TEAM + '|' + dateStr;
   var antes = PRACTICE_DAYS[key] || null;
-  var nuevoReg = { gym: antes ? !!antes.gym : false, court: antes ? !!antes.court : false, jump: (antes && antes.jump) || null };
-  nuevoReg[kind] = !nuevoReg[kind];
-  if(nuevoReg.gym || nuevoReg.court) PRACTICE_DAYS[key] = nuevoReg; else delete PRACTICE_DAYS[key];
-  renderPracticeToggle(); renderReminder();
+  var nuevoReg = { gym: !!gym, court: !!court, jump: court ? (jump || null) : null };
+  PRACTICE_DAYS[key] = nuevoReg;
   try {
     const { error } = await sb.from('practice_days')
-      .upsert({ team:PRACTICE_TEAM, date:d, gym:nuevoReg.gym, court:nuevoReg.court,
-                jump_level: nuevoReg.court ? nuevoReg.jump : null }, { onConflict:'team,date' });
+      .upsert({ team:PRACTICE_TEAM, date:dateStr, gym:nuevoReg.gym, court:nuevoReg.court,
+                jump_level: nuevoReg.jump }, { onConflict:'team,date' });
     if(error) throw error;
+    invalidateMetricsCache();
+    return true;
   } catch(e){
     if(antes) PRACTICE_DAYS[key] = antes; else delete PRACTICE_DAYS[key];
-    renderPracticeToggle(); renderReminder();
-    toast('No se pudo guardar el estado del entrenamiento', true);
+    toast('No se pudo guardar el plan de ese día', true);
+    return false;
   }
+}
+// Borra la anulacion de una fecha: vuelve a seguir la plantilla semanal.
+async function clearDayOverride(dateStr){
+  var key = PRACTICE_TEAM + '|' + dateStr;
+  var antes = PRACTICE_DAYS[key] || null;
+  if(!antes) return true;
+  delete PRACTICE_DAYS[key];
+  try {
+    const { error } = await sb.from('practice_days').delete().eq('team', PRACTICE_TEAM).eq('date', dateStr);
+    if(error) throw error;
+    invalidateMetricsCache();
+    return true;
+  } catch(e){
+    PRACTICE_DAYS[key] = antes;
+    toast('No se pudo restablecer ese día', true);
+    return false;
+  }
+}
+async function toggleTrainingSlot(kind){
+  var d = today();
+  var actual = effectivePlanFor(d);
+  var nuevoReg = { gym: actual.gym, court: actual.court, jump: (PRACTICE_DAYS[PRACTICE_TEAM+'|'+d] || {}).jump || null };
+  nuevoReg[kind] = !nuevoReg[kind];
+  await saveDayOverride(d, nuevoReg.gym, nuevoReg.court, nuevoReg.jump);
+  renderPracticeToggle(); renderReminder();
 }
 function toggleGymDay(){ return toggleTrainingSlot('gym'); }
 function toggleCourtDay(){ return toggleTrainingSlot('court'); }
@@ -1969,29 +2082,116 @@ function toggleCourtDay(){ return toggleTrainingSlot('court'); }
 // siempre como estimacion, nunca como una medicion. Solo aplica a cancha:
 // el salto no ocurre en el gimnasio.
 async function setJumpLevel(nivel){
-  var d = today(), key = PRACTICE_TEAM + '|' + d;
-  var reg = PRACTICE_DAYS[key];
-  if(!reg || !reg.court){ toast('Marca primero que hoy hay cancha', true); return; }
-  var antes = reg.jump || null;
-  reg.jump = (antes === nivel) ? null : nivel;
+  var d = today();
+  if(!isCourtDayOn(d)){ toast('Marca primero que hoy hay cancha', true); return; }
+  var actual = effectivePlanFor(d);
+  var antes = (PRACTICE_DAYS[PRACTICE_TEAM+'|'+d] || {}).jump || null;
+  var nuevo = (antes === nivel) ? null : nivel;
+  await saveDayOverride(d, actual.gym, true, nuevo);
   renderPracticeToggle();
+}
+// Fechas (mas reciente primero) con ALGUN entrenamiento, sea por anulacion
+// puntual o porque lo dice la plantilla semanal vigente. Ventana de 220
+// dias hacia atras desde hoy (o mas si hay una anulacion explicita mas
+// vieja que esa ventana), nunca hacia el futuro: se usa para adherencia y
+// rachas, que solo miran hacia atras.
+function practiceDatesDesc(){
+  var keys = Object.keys(PRACTICE_DAYS)
+    .filter(function(k){ return k.indexOf(PRACTICE_TEAM+'|')===0; })
+    .map(function(k){ return k.split('|')[1]; });
+  var startBound = daysAgoStr(220);
+  var minKey = keys.length ? keys.slice().sort()[0] : null;
+  var start = (minKey && minKey < startBound) ? minKey : startBound;
+  var end = today();
+  var out = [];
+  var d = dateFromISO(start), endD = dateFromISO(end);
+  while(d.getTime() <= endD.getTime()){
+    var iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(isGymDayOn(iso) || isCourtDayOn(iso)) out.push(iso);
+    d.setDate(d.getDate()+1);
+  }
+  return out.reverse();
+}
+// ---------- Plantilla semanal ----------
+function templateDayToggle(dow, kind){
+  var cur = templateFor(dow);
+  cur[kind] = !cur[kind];
+  TRAINING_TEMPLATE[dow] = cur;
+  try { renderTaper(); } catch(e){}
+  saveTrainingTemplate();
+}
+async function saveTrainingTemplate(){
   try {
-    const { error } = await sb.from('practice_days')
-      .upsert({ team:PRACTICE_TEAM, date:d, gym:reg.gym, court:true, jump_level:reg.jump },
-              { onConflict:'team,date' });
+    const { error } = await sb.from('team_settings')
+      .upsert({ team:PRACTICE_TEAM, training_template: TRAINING_TEMPLATE });
     if(error) throw error;
     invalidateMetricsCache();
   } catch(e){
-    reg.jump = antes;
-    renderPracticeToggle();
-    toast('No se pudo guardar el volumen de salto', true);
+    toast('No se pudo guardar la plantilla semanal', true);
   }
 }
-function practiceDatesDesc(){
-  return Object.keys(PRACTICE_DAYS)
-    .filter(function(k){ return k.indexOf(PRACTICE_TEAM+'|')===0; })
-    .map(function(k){ return k.split('|')[1]; })
-    .sort().reverse();
+// ---------- Editor de un dia concreto (Microciclo) ----------
+var _dpmDate = null;
+function openDayPlanModal(dateStr){
+  _dpmDate = dateStr;
+  renderDayPlanModal();
+  document.getElementById('day-plan-modal').style.display = 'flex';
+}
+function closeDayPlanModal(ev){
+  if(ev && ev.target !== ev.currentTarget) return;
+  document.getElementById('day-plan-modal').style.display = 'none';
+  _dpmDate = null;
+}
+function renderDayPlanModal(){
+  if(!_dpmDate) return;
+  var d = _dpmDate;
+  var plan = effectivePlanFor(d);
+  var hasOverride = Object.prototype.hasOwnProperty.call(PRACTICE_DAYS, PRACTICE_TEAM+'|'+d);
+  document.getElementById('dpm-title').textContent = formatDateLong(d);
+  document.getElementById('dpm-subtitle').textContent =
+    d===today() ? 'Hoy' : (d < today() ? 'Día pasado — corrección retroactiva' : 'Próximo');
+  document.getElementById('dpm-toggles').innerHTML =
+    pillBtn(plan.gym ? 'Gimnasio: sí' : 'Gimnasio: no', plan.gym, 'dpmToggle(\'gym\')', '#0096FF') +
+    pillBtn(plan.court ? 'Cancha: sí' : 'Cancha: no', plan.court, 'dpmToggle(\'court\')', '#16A34A');
+  var jumpBlock = document.getElementById('dpm-jump-block');
+  if(plan.court){
+    jumpBlock.style.display = '';
+    var curJump = (PRACTICE_DAYS[PRACTICE_TEAM+'|'+d] || {}).jump || null;
+    document.getElementById('dpm-jump-toggles').innerHTML = ['bajo','medio','alto'].map(function(lv){
+      return pillBtn(lv.charAt(0).toUpperCase()+lv.slice(1), curJump===lv, 'dpmSetJump(\''+lv+'\')', '#8B5CF6');
+    }).join('');
+  } else {
+    jumpBlock.style.display = 'none';
+  }
+  document.getElementById('dpm-template-note').textContent = hasOverride
+    ? 'Este día tiene una corrección puntual, distinta de la plantilla semanal.'
+    : 'Este día sigue la plantilla semanal.';
+}
+async function dpmToggle(kind){
+  var d = _dpmDate;
+  var plan = effectivePlanFor(d);
+  var jump = (PRACTICE_DAYS[PRACTICE_TEAM+'|'+d] || {}).jump || null;
+  var nuevo = { gym:plan.gym, court:plan.court };
+  nuevo[kind] = !nuevo[kind];
+  await saveDayOverride(d, nuevo.gym, nuevo.court, nuevo.court ? jump : null);
+  renderDayPlanModal();
+  try { renderTaper(); } catch(e){}
+  try { renderPracticeToggle(); } catch(e){}
+}
+async function dpmSetJump(nivel){
+  var d = _dpmDate;
+  var plan = effectivePlanFor(d);
+  if(!plan.court) return;
+  var antes = (PRACTICE_DAYS[PRACTICE_TEAM+'|'+d] || {}).jump || null;
+  var nuevo = (antes === nivel) ? null : nivel;
+  await saveDayOverride(d, plan.gym, true, nuevo);
+  renderDayPlanModal();
+}
+async function dpmResetToTemplate(){
+  await clearDayOverride(_dpmDate);
+  renderDayPlanModal();
+  try { renderTaper(); } catch(e){}
+  try { renderPracticeToggle(); } catch(e){}
 }
 // Solo cuenta dias marcados como practica: contar dias naturales pondria a
 // todo el roster en rojo de forma permanente.
@@ -5401,12 +5601,39 @@ function renderTaper(teamFilter){
     '</div>';
   }).join('');
 
+  // Panel de periodización física: fase, objetivo e intensidad de la
+  // semana en curso, segun la planificacion de 20 semanas del cuerpo
+  // tecnico (Coach Freddy Vazquez, LVSM 2K26-27). Puramente informativo —
+  // no cambia el plan de dias de gimnasio/cancha, que sigue siendo la
+  // plantilla semanal de abajo.
+  var hoy = today();
+  var pWeek = periodizationWeekFor(hoy);
+  var periodizationPanel = '';
+  if(pWeek){
+    var pColor = periodizationIntensityColor(pWeek.intensidad);
+    periodizationPanel = '<div class="panel section-gap" style="border-color:'+hexA(pColor,.35)+'">'+
+      '<div class="panel-title"><span class="dot" style="background:'+pColor+'"></span>Planificación física · Semana '+pWeek.week+' de 20</div>'+
+      '<div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;margin-top:6px">'+
+        '<div style="min-width:110px;text-align:center">'+
+          '<div style="font-family:var(--mono);font-size:30px;font-weight:700;color:'+pColor+'">'+pWeek.intensidad+'</div>'+
+          '<div style="font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:2px">intensidad</div>'+
+        '</div>'+
+        '<div style="flex:1;min-width:220px">'+
+          '<div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)">'+htmlEscape(pWeek.etapa)+'</div>'+
+          '<div style="font-family:var(--disp);font-size:19px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;line-height:1.15;margin-top:2px">'+htmlEscape(pWeek.objetivo)+'</div>'+
+          '<div style="font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:6px">'+formatDateLong(pWeek.start)+' – '+formatDateLong(pWeek.end)+' · '+pWeek.juegos+' partido(s) esperados</div>'+
+          '<div style="font-size:12.5px;color:var(--dim);margin-top:8px;line-height:1.4">'+htmlEscape(pWeek.periodo)+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="mono-note" style="margin-top:10px">Planificación de Coach Freddy Vázquez (LVSM 2K26-27), 20 semanas. Referencia de carga/intensidad; los días reales de gimnasio y cancha se manejan en la plantilla semanal de abajo.</div>'+
+    '</div>';
+  }
+
   // Plan dia a dia de la semana en curso (lunes a domingo): que toca hoy en
   // el microciclo (gimnasio / cancha / partido / descanso) y cuanto del
   // equipo ya registro ese slot. Esto reemplaza la vieja logica de "modo
   // torneo": con dos partidos por semana, el plan semanal es lo que importa
   // todas las semanas, no solo cuando hay un evento cerca.
-  var hoy = today();
   var dayCards = microcicloWeekDates(hoy).map(function(dateStr){
     var isToday = dateStr === hoy;
     var isFuture = dateStr > hoy;
@@ -5428,8 +5655,11 @@ function renderTaper(teamFilter){
         (done!=null ? '<span style="font-family:var(--mono);font-size:9px;color:var(--faint);margin-left:5px">'+done+'/'+players.length+'</span>' : '')+
       '</div>';
     }).join('');
+    var clickable = !juego;
     return '<div style="flex:1;min-width:100px;padding:10px 9px;border-radius:var(--r-md);border:1px solid '+(isToday?hexA('#0096FF',.5):'var(--line)')+';'+
-      'background:'+(isToday?hexA('#0096FF',.08):'var(--bg1)')+'">'+
+      'background:'+(isToday?hexA('#0096FF',.08):'var(--bg1)')+(clickable?';cursor:pointer':'')+'"'+
+      (clickable ? ' onclick="openDayPlanModal(\''+dateStr+'\')" title="Toca para ajustar este día"' : '')+
+      '>'+
       '<div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:'+(isToday?'#0096FF':'var(--faint)')+'">'+
         DOW_SHORT[dateFromISO(dateStr).getDay()]+(isToday?' · hoy':'')+
       '</div>'+
@@ -5438,8 +5668,24 @@ function renderTaper(teamFilter){
     '</div>';
   }).join('');
 
+  // Plantilla semanal: el patron por defecto (lunes a domingo) que se
+  // aplica automaticamente a toda fecha futura sin una correccion puntual.
+  var DOW_ORDER = [1,2,3,4,5,6,0]; // lunes..domingo, igual que la grilla de arriba
+  var templateRows = DOW_ORDER.map(function(dow){
+    var t = templateFor(dow);
+    var label = DOW_ES[dow].charAt(0).toUpperCase()+DOW_ES[dow].slice(1);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)">'+
+      '<div style="width:88px;flex-shrink:0;font-family:var(--mono);font-size:11px;color:var(--dim)">'+label+'</div>'+
+      '<div style="display:flex;gap:7px;flex-wrap:wrap">'+
+        pillBtn('Gimnasio', t.gym, 'templateDayToggle('+dow+',\'gym\')', '#0096FF')+
+        pillBtn('Cancha', t.court, 'templateDayToggle('+dow+',\'court\')', '#16A34A')+
+      '</div>'+
+    '</div>';
+  }).join('');
+
   slot.innerHTML =
     taperBanner+
+    periodizationPanel+
 
     '<div class="stats-row">'+
       '<div class="stat-card"><div class="stat-label">Bienestar del equipo</div><div class="stat-value" style="color:'+(avgVwi!=null?haloColor(avgVwi):'var(--faint)')+'">'+(avgVwi!=null?avgVwi:'—')+'</div><div class="stat-sub">VWI promedio</div></div>'+
@@ -5451,7 +5697,13 @@ function renderTaper(teamFilter){
     '<div class="panel section-gap">'+
       '<div class="panel-title"><span class="dot"></span>Plan de la semana · lunes a domingo</div>'+
       '<div style="display:flex;gap:9px;flex-wrap:wrap">'+dayCards+'</div>'+
-      '<div class="mono-note">Plan tomado de los días de gimnasio/cancha marcados y del calendario de partidos. El número junto a cada etiqueta es cuántos del roster ya registraron ese entrenamiento.</div>'+
+      '<div class="mono-note">Toca un día (menos los de partido) para ajustar su plan sin afectar la plantilla. El número junto a cada etiqueta es cuántos del roster ya registraron ese entrenamiento.</div>'+
+    '</div>'+
+
+    '<div class="panel section-gap">'+
+      '<div class="panel-title"><span class="dot"></span>Plantilla semanal</div>'+
+      templateRows+
+      '<div class="mono-note" style="margin-top:10px">Patrón por defecto de cada semana. Se aplica automáticamente a toda fecha que no tenga una corrección puntual en el plan de arriba. Los días de partido no dependen de esta plantilla.</div>'+
     '</div>'+
 
     '<div class="chart-row">'+
